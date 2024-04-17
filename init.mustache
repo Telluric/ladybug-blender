@@ -22,7 +22,6 @@ import importlib
 import nodeitems_utils
 import sverchok
 from ladybug_tools import icons, sockets
-from sverchok.utils import auto_gather_node_classes, get_node_class_reference
 from sverchok.menu import SverchNodeItem, SverchNodeCategory, register_node_panels
 from sverchok.utils.extra_categories import register_extra_category_provider, unregister_extra_category_provider
 from sverchok.ui.nodeview_space_menu import make_extra_category_menus, make_class, layout_draw_categories
@@ -72,7 +71,7 @@ def make_menu():
         node_items = []
         for item in items:
             nodetype = item[1]
-            rna = get_node_class_reference(nodetype)
+            rna = bpy.types.Node.bl_rna_get_subclass_py(nodetype)
             if not rna:
                 info("Node `%s' is not available (probably due to missing dependencies).", nodetype)
             else:
@@ -147,8 +146,6 @@ def register():
     sockets.register()
     bpy.utils.register_class(NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug)
     register_nodes()
-    extra_nodes = importlib.import_module(".nodes", "ladybug_tools")
-    auto_gather_node_classes(extra_nodes)
     bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategoryViz)
     {{#subcategories}}
     bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategory{{name}})
