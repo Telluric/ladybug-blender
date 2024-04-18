@@ -2,12 +2,8 @@ import bpy
 import sverchok.core.socket_conversions
 from bpy.types import NodeSocket
 from bpy.props import StringProperty
+from sverchok.core.socket_conversions import ConversionPolicies
 from sverchok.core.sockets import SvSocketCommon, process_from_socket
-
-
-# Monkey-patch!
-def _monkey_get_lenient_socket_types():
-    return ['SvLBSocket', 'SvStringsSocket', 'SvObjectSocket', 'SvColorSocket', 'SvVerticesSocket']
 
 
 class SvLBSocketName(bpy.types.Operator):
@@ -41,6 +37,7 @@ class SvLBSocket(NodeSocket, SvSocketCommon):
     default_int_property: bpy.props.IntProperty(update=process_from_socket)
 
     tooltip: bpy.props.StringProperty()
+    default_conversion_name = ConversionPolicies.LENIENT.conversion_name
 
     @property
     def default_property(self):
@@ -94,7 +91,6 @@ class SvLBSocket(NodeSocket, SvSocketCommon):
 def register():
     bpy.utils.register_class(SvLBSocketName)
     bpy.utils.register_class(SvLBSocket)
-    sverchok.core.socket_conversions.DefaultImplicitConversionPolicy.get_lenient_socket_types = _monkey_get_lenient_socket_types
 
 def unregister():
     bpy.utils.unregister_class(SvLBSocket)
