@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 VERSION:=`date '+%y%m%d'`
 _python_ver:=$(shell python --version | grep -Po 'Python \K[0-9].[0-9]+')
 
