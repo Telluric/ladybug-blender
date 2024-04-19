@@ -12,9 +12,7 @@ class Generator():
     def generate(self):
         data = {
             'nodes': [],
-            'subcategories': []
         }
-        subcategories = {}
         for filename in Path(self.json_dir).glob('*.json'):
             if 'LB_Export_UserObject' in str(filename) \
                     or 'LB_Sync_Grasshopper_File' in str(filename) \
@@ -24,18 +22,12 @@ class Generator():
                 spec = json.load(spec_f)
                 spec['nickname'] = spec['nickname'].replace('+', 'Plus')
                 filename = os.path.basename(filename)
+                subcategory = spec['subcategory'].split(' :: ')[1]
                 data['nodes'].append({
                     'node_module': filename[0:-5],
-                    'node_classname': spec['nickname']
+                    'node_classname': spec['nickname'],
+                    'subcategory': subcategory
                 })
-                subcategory = spec['subcategory'].split(' :: ')[1]
-                subcategories.setdefault(subcategory, []).append(spec['nickname'])
-        for name, nodes in subcategories.items():
-            data['subcategories'].append({
-                'name': name.replace(' ', '_'),
-                'title': name,
-                'nodes': nodes
-            })
 
         out_filepath = os.path.join(self.out_dir, '__init__.py')
         with open(out_filepath, 'w') as f:

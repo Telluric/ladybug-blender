@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 VERSION:=`date '+%y%m%d'`
 _python_ver:=$(shell python --version | grep -Po 'Python \K[0-9].[0-9]+')
 
@@ -28,6 +29,7 @@ dist:
 	mkdir dist/working
 	python -m venv dist/working/env
 	source dist/working/env/bin/activate && pip install lbt-ladybug
+	# lbt-ladybug is python version independent
 	cp -r dist/working/env/lib/python$(_python_ver)/site-packages/ladybug dist/ladybug_tools/lib/
 	cp -r dist/working/env/lib/python$(_python_ver)/site-packages/ladybug_comfort dist/ladybug_tools/lib/
 	cp -r dist/working/env/lib/python$(_python_ver)/site-packages/ladybug_geometry dist/ladybug_tools/lib/

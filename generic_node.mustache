@@ -11,7 +11,10 @@ class Sv{{{nickname}}}(bpy.types.Node, SverchCustomTreeNode):
     bl_label = '{{{name}}}'
     sv_icon = 'LB_{{{nickname_uppercase}}}'
     {{#inputs}}
-    sv_{{{name}}}: StringProperty(name='{{{name}}}', update=updateNode, description='{{{description}}}')
+    sv_{{{name}}}: StringProperty(
+        name='{{{name}}}',
+        update=updateNode,
+        description='{{{description}}}')
     {{/inputs}}
 
     def sv_init(self, context):

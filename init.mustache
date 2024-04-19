@@ -22,28 +22,41 @@ import importlib
 import nodeitems_utils
 import sverchok
 from ladybug_tools import icons, sockets
-from sverchok.core import sv_registration_utils, make_node_list
-from sverchok.utils import auto_gather_node_classes, get_node_class_reference
-from sverchok.menu import SverchNodeItem, SverchNodeCategory, register_node_panels
-from sverchok.utils.extra_categories import register_extra_category_provider, unregister_extra_category_provider
-from sverchok.ui.nodeview_space_menu import make_extra_category_menus, make_class, layout_draw_categories
-from sverchok.utils.logging import info, debug
+from sverchok.ui.nodeview_space_menu import add_node_menu
+import logging
+logger = logging.getLogger('sverchok')
 
 def nodes_index():
     return [("Ladybug", [
-        ("ladybug.LB_Out", "SvLBOut"),
+        ("ladybug.LB_Out", "SvLBOut", "Viz"),
         # Generated nodes
         {{#nodes}}
-        ("ladybug.{{node_module}}", "Sv{{node_classname}}"),
+        ("ladybug.{{node_module}}", "Sv{{node_classname}}", "{{subcategory}}"),
         {{/nodes}}
     ])]
+
+
+def make_node_categories() -> list[dict[str, list[str]]]:
+    node_categories = [{}]
+    for category, nodes in nodes_index():
+        subcategories = {}
+        for module_name, node_name, subcategory in nodes:
+            subcategories.setdefault(subcategory, []).append(node_name)
+        subcategories = [{subcategory: items} for subcategory, items in subcategories.items()]
+        node_categories[0][category] = subcategories
+
+    return node_categories
+
+
+node_categories = make_node_categories()
+
 
 def make_node_list():
     modules = []
     base_name = "ladybug_tools.nodes"
     index = nodes_index()
     for category, items in index:
-        for module_name, node_name in items:
+        for module_name, node_name, subcategory in items:
             module = importlib.import_module(f".{module_name}", base_name)
             modules.append(module)
     return modules
@@ -58,123 +71,26 @@ def register_nodes():
     node_modules = make_node_list()
     for module in node_modules:
         module.register()
-    info("Registered %s nodes", len(node_modules))
+    logger.info("Registered %s nodes", len(node_modules))
 
 def unregister_nodes():
     global imported_modules
     for module in reversed(imported_modules):
         module.unregister()
 
-def make_menu():
-    menu = []
-    index = nodes_index()
-    for category, items in index:
-        identifier = "LADYBUG_TOOLS_" + category.replace(' ', '_')
-        node_items = []
-        for item in items:
-            nodetype = item[1]
-            rna = get_node_class_reference(nodetype)
-            if not rna:
-                info("Node `%s' is not available (probably due to missing dependencies).", nodetype)
-            else:
-                node_item = SverchNodeItem.new(nodetype)
-                node_items.append(node_item)
-        if node_items:
-            cat = SverchNodeCategory(
-                        identifier,
-                        category,
-                        items=node_items
-                    )
-            menu.append(cat)
-    return menu
 
-class SvExCategoryProvider(object):
-    def __init__(self, identifier, menu):
-        self.identifier = identifier
-        self.menu = menu
-
-    def get_categories(self):
-        return self.menu
-
-our_menu_classes = []
-
-class NODEVIEW_MT_AddLBSubcategoryViz(bpy.types.Menu):
-    bl_label = "LBSubcategoryViz"
-    bl_idname = 'NODEVIEW_MT_AddLBSubcategoryViz'
-
-    def draw(self, context):
-        layout = self.layout
-        layout_draw_categories(self.layout, self.bl_label, [['SvLBOut']])
-
-make_class('LBSubcategoryViz', 'Ladybug @ Viz')
-
-
-{{#subcategories}}
-class NODEVIEW_MT_AddLBSubcategory{{name}}(bpy.types.Menu):
-    bl_label = "LBSubcategory{{name}}"
-    bl_idname = 'NODEVIEW_MT_AddLBSubcategory{{name}}'
-
-    def draw(self, context):
-        layout = self.layout
-        layout_draw_categories(self.layout, self.bl_label, [
-            {{#nodes}}
-            ['Sv{{.}}'],
-            {{/nodes}}
-        ])
-
-
-make_class('LBSubcategory{{name}}', 'Ladybug @ {{title}}')
-{{/subcategories}}
-
-# Main menu
-class NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug(bpy.types.Menu):
-    bl_label = 'Ladybug'
-
-    def draw(self, context):
-        layout_draw_categories(self.layout, 'Ladybug', [
-            ['@ Viz'],
-            {{#subcategories}}
-            ['@ {{title}}'],
-            {{/subcategories}}
-        ])
+add_node_menu.append_from_config(node_categories)
 
 
 def register():
-    global our_menu_classes
-
-    debug("Registering ladybug_tools")
+    logger.debug("Registering ladybug_tools")
 
     icons.register()
     sockets.register()
-    bpy.utils.register_class(NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug)
     register_nodes()
-    extra_nodes = importlib.import_module(".nodes", "ladybug_tools")
-    auto_gather_node_classes(extra_nodes)
-    bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategoryViz)
-    {{#subcategories}}
-    bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategory{{name}})
-    {{/subcategories}}
-    menu = make_menu()
-    menu_category_provider = SvExCategoryProvider("LADYBUG_TOOLS", menu)
-    register_extra_category_provider(menu_category_provider)
-    nodeitems_utils.register_node_categories("LADYBUG_TOOLS", menu)
-    #our_menu_classes = make_extra_category_menus()
+    add_node_menu.register()
 
 def unregister():
-    global our_menu_classes
-    if 'LADYBUG_TOOLS' in nodeitems_utils._node_categories:
-        nodeitems_utils.unregister_node_categories("LADYBUG_TOOLS")
-    for clazz in our_menu_classes:
-        try:
-            bpy.utils.unregister_class(clazz)
-        except Exception as e:
-            print("Can't unregister menu class %s" % clazz)
-            print(e)
-    unregister_extra_category_provider("LADYBUG_TOOLS")
     unregister_nodes()
-    bpy.utils.unregister_class(NODEVIEW_MT_AddLBSubcategoryViz)
-    {{#subcategories}}
-    bpy.utils.unregister_class(NODEVIEW_MT_AddLBSubcategory{{name}})
-    {{/subcategories}}
     sockets.unregister()
     icons.unregister()
