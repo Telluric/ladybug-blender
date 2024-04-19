@@ -56,7 +56,7 @@ class Generator():
             item['description'] = item['description'].replace('\n', ' ').replace("'", "\\'")
         module_name = filename[0:-5]
         out_filepath = os.path.join(self.out_dir, module_name + '.py')
-        with open(out_filepath, 'w') as f:
+        with open(out_filepath, "w", encoding="utf-8") as f:
             with open('generic_node.mustache', 'r') as template:
                 f.write(pystache.render(template.read(), spec))
 
