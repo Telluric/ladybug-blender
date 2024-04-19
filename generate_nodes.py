@@ -59,7 +59,7 @@ class Generator():
         with open(out_filepath, 'w') as f:
             with open('generic_node.mustache', 'r') as template:
                 f.write(pystache.render(template.read(), spec))
-        subprocess.run([self.python2to3_bin, '-x', 'itertools_imports', '-w', out_filepath])
+        subprocess.run([self.python2to3_bin, '-x', 'itertools_imports', '-w', out_filepath, '-n'])
         icon_path = os.path.join(self.icon_dir, 'lb_{}.png'.format(spec['nickname'].lower()))
         os.rename(
             os.path.join(self.icon_dir, '{}.png'.format(module_name.replace('_', ' '))),
