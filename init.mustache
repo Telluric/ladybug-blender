@@ -22,17 +22,16 @@ import importlib
 import nodeitems_utils
 import sverchok
 from ladybug_tools import icons, sockets
-from sverchok.ui.nodeview_space_menu import make_class, layout_draw_categories
 from sverchok.ui.nodeview_space_menu import add_node_menu
 import logging
 logger = logging.getLogger('sverchok')
 
 def nodes_index():
     return [("Ladybug", [
-        ("ladybug.LB_Out", "SvLBOut"),
+        ("ladybug.LB_Out", "SvLBOut", "Viz"),
         # Generated nodes
         {{#nodes}}
-        ("ladybug.{{node_module}}", "Sv{{node_classname}}"),
+        ("ladybug.{{node_module}}", "Sv{{node_classname}}", "{{subcategory}}"),
         {{/nodes}}
     ])]
 
@@ -40,19 +39,24 @@ def nodes_index():
 def make_node_categories() -> list[dict[str, list[str]]]:
     node_categories = [{}]
     for category, nodes in nodes_index():
-        nodes = [node_name for idname, node_name in nodes]
-        node_categories[0][category] = nodes
+        subcategories = {}
+        for module_name, node_name, subcategory in nodes:
+            subcategories.setdefault(subcategory, []).append(node_name)
+        subcategories = [{subcategory: items} for subcategory, items in subcategories.items()]
+        node_categories[0][category] = subcategories
+
     return node_categories
 
 
 node_categories = make_node_categories()
+
 
 def make_node_list():
     modules = []
     base_name = "ladybug_tools.nodes"
     index = nodes_index()
     for category, items in index:
-        for module_name, node_name in items:
+        for module_name, node_name, subcategory in items:
             module = importlib.import_module(f".{module_name}", base_name)
             modules.append(module)
     return modules
@@ -75,67 +79,18 @@ def unregister_nodes():
         module.unregister()
 
 
-class NODEVIEW_MT_AddLBSubcategoryViz(bpy.types.Menu):
-    bl_label = "LBSubcategoryViz"
-    bl_idname = 'NODEVIEW_MT_AddLBSubcategoryViz'
-
-    def draw(self, context):
-        layout = self.layout
-        layout_draw_categories(self.layout, self.bl_label, [['SvLBOut']])
-
-make_class('LBSubcategoryViz', 'Ladybug @ Viz')
-
-
-{{#subcategories}}
-class NODEVIEW_MT_AddLBSubcategory{{name}}(bpy.types.Menu):
-    bl_label = "LBSubcategory{{name}}"
-    bl_idname = 'NODEVIEW_MT_AddLBSubcategory{{name}}'
-
-    def draw(self, context):
-        layout = self.layout
-        layout_draw_categories(self.layout, self.bl_label, [
-            {{#nodes}}
-            ['Sv{{.}}'],
-            {{/nodes}}
-        ])
-
-
-make_class('LBSubcategory{{name}}', 'Ladybug @ {{title}}')
-{{/subcategories}}
-
-# Main menu
-class NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug(bpy.types.Menu):
-    bl_label = 'Ladybug'
-
-    def draw(self, context):
-        layout_draw_categories(self.layout, 'Ladybug', [
-            ['@ Viz'],
-            {{#subcategories}}
-            ['@ {{title}}'],
-            {{/subcategories}}
-        ])
-
-
 add_node_menu.append_from_config(node_categories)
+
 
 def register():
     logger.debug("Registering ladybug_tools")
 
     icons.register()
     sockets.register()
-    bpy.utils.register_class(NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug)
     register_nodes()
-    bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategoryViz)
-    {{#subcategories}}
-    bpy.utils.register_class(NODEVIEW_MT_AddLBSubcategory{{name}})
-    {{/subcategories}}
     add_node_menu.register()
 
 def unregister():
     unregister_nodes()
-    bpy.utils.unregister_class(NODEVIEW_MT_AddLBSubcategoryViz)
-    {{#subcategories}}
-    bpy.utils.unregister_class(NODEVIEW_MT_AddLBSubcategory{{name}})
-    {{/subcategories}}
     sockets.unregister()
     icons.unregister()
