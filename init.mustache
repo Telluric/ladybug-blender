@@ -24,7 +24,8 @@ import sverchok
 from ladybug_tools import icons, sockets
 from sverchok.ui.nodeview_space_menu import make_class, layout_draw_categories
 from sverchok.ui.nodeview_space_menu import add_node_menu
-from sverchok.utils.logging import info, debug
+import logging
+logger = logging.getLogger('sverchok')
 
 def nodes_index():
     return [("Ladybug", [
@@ -66,7 +67,7 @@ def register_nodes():
     node_modules = make_node_list()
     for module in node_modules:
         module.register()
-    info("Registered %s nodes", len(node_modules))
+    logger.info("Registered %s nodes", len(node_modules))
 
 def unregister_nodes():
     global imported_modules
@@ -118,7 +119,7 @@ class NODEVIEW_MT_EX_LADYBUG_TOOLS_Ladybug(bpy.types.Menu):
 add_node_menu.append_from_config(node_categories)
 
 def register():
-    debug("Registering ladybug_tools")
+    logger.debug("Registering ladybug_tools")
 
     icons.register()
     sockets.register()
