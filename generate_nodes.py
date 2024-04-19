@@ -59,13 +59,19 @@ class Generator():
         with open(out_filepath, 'w') as f:
             with open('generic_node.mustache', 'r') as template:
                 f.write(pystache.render(template.read(), spec))
-        subprocess.run([self.python2to3_bin, '-x', 'itertools_imports', '-w', out_filepath, '-n'])
+
+        res = subprocess.run([self.python2to3_bin, "-x", "itertools_imports", "-w", out_filepath, "-n"])
+        if res.returncode != 0:
+            raise Exception(f"Failed to run 2to3 on {out_filepath}.")
+
         icon_path = os.path.join(self.icon_dir, 'lb_{}.png'.format(spec['nickname'].lower()))
         os.rename(
             os.path.join(self.icon_dir, '{}.png'.format(module_name.replace('_', ' '))),
             icon_path)
         # This incantation reverts the intensity channel in HSI. It will make light colors darker, and dark colors lighter
-        subprocess.run(['convert', icon_path, '-colorspace', 'HSI', '-channel', 'B', '-level', '100,0%', '+channel', '-colorspace', 'sRGB', icon_path])
+        res = subprocess.run(["convert", icon_path, "-colorspace", "HSI", "-channel", "B", "-level", "100,0%", "+channel", "-colorspace", "sRGB", icon_path])
+        if res.returncode != 0:
+            raise Exception(f"Failed to run magick convert on {icon_path}.")
 
 generator = Generator()
 generator.generate()
